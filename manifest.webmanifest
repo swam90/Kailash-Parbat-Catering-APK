@@ -1,0 +1,17 @@
+{
+  "name": "Kailash Parbat",
+  "short_name": "Kailash Parbat",
+  "description": "Kailash Parbat Restaurants Pte Ltd - inquiries, quotes, invoices and customers.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#4A7C3F",
+  "categories": ["business", "food", "productivity"],
+  "icons": [
+    {"src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "./icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
