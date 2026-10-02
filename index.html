@@ -57,7 +57,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--deep)}texta
 .pri{background:var(--deep);color:#fff}.ghost{background:#fff;color:var(--deep)}.dng{background:#fff;color:var(--red);border-color:#E8C4BE}
 .acts{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
 .toast{position:fixed;top:calc(env(safe-area-inset-top) + 70px);left:14px;right:14px;background:var(--ink);color:#fff;padding:12px 16px;border-radius:12px;font-weight:600;z-index:99;text-align:center}
-.note{font-size:12px;color:var(--mut);margin-top:10px}
+.hint{font-size:11px;color:var(--mut);margin-top:3px}.note{font-size:12px;color:var(--mut);margin-top:10px}
 </style>
 </head>
 <body>
@@ -74,6 +74,7 @@ const LOGO="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAjoAAAB4CAIAAAB0Jc/ZAA
 const load=k=>{try{return JSON.parse(localStorage.getItem(K+k))||[]}catch{return[]}};
 const save=(k,v)=>{try{localStorage.setItem(K+k,JSON.stringify(v))}catch{toast('Storage full or blocked')}};
 const S={cust:load('cust'),inq:load('inq'),quote:load('quote'),inv:load('inv')};
+const CO=(()=>{try{return JSON.parse(localStorage.getItem(K+'co'))||{}}catch{return{}}})();let MENU=null;
 const put=(k,o)=>{const i=S[k].findIndex(x=>x.id==o.id);i<0?S[k].unshift(o):S[k][i]=o;save(k,S[k])};
 const nid=(k,p)=>p+String(Math.max(0,...S[k].map(x=>parseInt(x.id.slice(p.length))||0))+1).padStart(3,'0');
 const money=n=>'S$'+(+n||0).toLocaleString('en-SG',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -83,10 +84,11 @@ const total=d=>{const sub=(d.items||[]).reduce((a,i)=>a+i.q*i.p,0),g=d.gst?sub*.
 const toast=m=>{const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),2200)};
 const EV=['Banquet','Dining reservation','Corporate event','Wedding','Birthday / party','Catering delivery','Other'];
 const base=[['name','Customer name','text',1],['phone','Phone','tel'],['date','Event date','date'],['pax','Guests','number']];
+const SL=['','Lunch','Dinner','Hi-Tea'];
 const CFG={
- inq:{t:'Inquiries',one:'Inquiry',p:'INQ-',st:['New','Contacted','Quoted','Closed'],f:[...base,['type','Event type','select',EV],['venue','Venue','text'],['notes','Notes','textarea']]},
- quote:{t:'Quotes',one:'Quotation',p:'QT-',doc:1,st:['Draft','Sent','Accepted','Rejected'],f:[...base,['venue','Venue','text'],['notes','Notes / terms','textarea']]},
- inv:{t:'Invoices',one:'Invoice',p:'INV-',doc:1,st:['Unpaid','Paid'],f:[...base,['venue','Venue','text'],['notes','Payment details / notes','textarea']]},
+ inq:{t:'Inquiries',one:'Inquiry',p:'INQ-',st:['New','Contacted','Quoted','Closed'],f:[...base,['type','Event type','select',EV],['slot','Event slot','select',SL],['venue','Venue','text'],['notes','Notes','textarea']]},
+ quote:{t:'Quotes',one:'Quotation',p:'QT-',doc:1,st:['Draft','Sent','Accepted','Rejected'],f:[...base,['slot','Event slot','select',SL],['venue','Venue','text'],['fn','From – name','text'],['fc','From – contact','text'],['notes','General terms and conditions','textarea']]},
+ inv:{t:'Invoices',one:'Invoice',p:'INV-',doc:1,st:['Unpaid','Paid'],f:[...base,['slot','Event slot','select',SL],['venue','Venue','text'],['fn','From – name','text'],['fc','From – contact','text'],['notes','General terms and conditions','textarea']]},
  cust:{t:'Customers',one:'Customer',p:'C-',f:[['name','Name','text',1],['phone','Phone','tel'],['email','Email','email'],['company','Company','text'],['notes','Notes','textarea']]}
 };
 const TABS=[['home','📊','Home'],['inq','📋','Inquiries'],['quote','📝','Quotes'],['inv','🧾','Invoices'],['cust','👥','Customers']];
@@ -102,7 +104,7 @@ function render(){
  $('#main').scrollTop=0;
 }
 function fill(){
- const L=S[tab].filter(o=>JSON.stringify(o).toLowerCase().includes(q.toLowerCase()));
+ const L=S[tab].filter(o=>JSON.stringify({...o,menu:0}).toLowerCase().includes(q.toLowerCase()));
  $('#lst').innerHTML=L.length?L.map(o=>card(tab,o)).join(''):`<div class="empty">${q?'No matches.':'Nothing here yet.<br>Tap + to add '+CFG[tab].one.toLowerCase()+'.'}</div>`;
 }
 const card=(k,o)=>{
@@ -115,7 +117,8 @@ function home(){
  return `<div class="grid">${T(S.inq.filter(x=>x.status=='New').length,'New inquiries','inq')}${T(S.quote.filter(x=>x.status=='Sent').length,'Quotes awaiting reply','quote')}${T(money(sum(S.inv.filter(x=>x.status!='Paid'))),'Unpaid invoices','inv')}${T(money(sum(S.inv.filter(x=>x.status=='Paid'))),'Payments received','inv')}</div>
  <h3>Recent inquiries</h3>${S.inq.slice(0,5).map(o=>card('inq',o)).join('')||'<div class="empty">No inquiries yet. Open Inquiries and tap +.</div>'}
  <h3>Your data</h3>
- <button class="ghost" onclick="bak()">Download backup</button>
+ <button class="ghost" onclick="expSheet()">Download backup / export</button>
+ <button class="ghost" onclick="coSheet()">Company details &amp; terms</button>
  <button class="ghost" onclick="$('#rf').click()">Restore from backup</button><input type="file" id="rf" accept=".json" hidden onchange="rst(this.files[0])">
  ${dip?'<button class="pri" onclick="dip.prompt()">Install app</button>':'<p class="note">To install: Android Chrome menu → Install app. iPhone Safari → Share → Add to Home Screen.</p>'}
  <p class="note">Data is saved on this phone only. Download a backup regularly.</p>`;
@@ -127,6 +130,7 @@ function view(k,id){
  let h=`<div class="sh-t">${o.id} · ${esc(o.name)}</div>`;
  h+=c.f.filter(f=>f[0]!='name'&&o[f[0]]).map(f=>`<div class="kv"><span>${f[1]}</span><b>${esc(f[2]=='date'?fd(o[f[0]]):o[f[0]])}</b></div>`).join('');
  if(c.doc){const t=total(o);h+=o.items.map(i=>`<div class="kv"><span>${esc(i.d)} × ${i.q}</span><b>${money(i.q*i.p)}</b></div>`).join('')+(o.gst?`<div class="kv"><span>GST 9%</span><b>${money(t.g)}</b></div>`:'')+`<div class="kv tot"><span>Total</span><b>${money(t.t)}</b></div>`}
+ if(o.menu)h+=`<div class="kv"><span>Menu</span><b><a href="#" onclick="openMenu('${k}','${id}');return false" style="color:var(--deep)">${esc(o.menu.name)}</a></b></div>`;
  if(c.st)h+=`<label>Status</label><select onchange="setSt('${k}','${id}',this.value)">${c.st.map(s=>`<option ${s==o.status?'selected':''}>${s}</option>`).join('')}</select>`;
  const B=(t,f,cl)=>`<button class="${cl||'ghost'}" onclick="${f}">${t}</button>`;
  h+='<div class="acts">'+B('Edit',`openForm('${k}','${id}')`,'pri')
@@ -138,11 +142,12 @@ function view(k,id){
 function setSt(k,id,v){const o=S[k].find(x=>x.id==id);o.status=v;save(k,S[k]);render();toast('Status: '+v)}
 function rm(k,id){if(confirm('Delete '+id+'?')){S[k]=S[k].filter(x=>x.id!=id);save(k,S[k]);closeSh();render()}}
 function openForm(k,id,pre){
- const c=CFG[k],o=id?S[k].find(x=>x.id==id):(pre||{});PRE=id?{}:(pre||{});
- let h=`<div class="sh-t">${id?'Edit':'New'} ${c.one.toLowerCase()}</div>`;
+ const c=CFG[k],o=id?S[k].find(x=>x.id==id):{...(c.doc?{fn:CO.fn||'Rajesh Paswan',fc:CO.fc||'+65 8376 3519',notes:CO.terms||''}:{}),...(pre||{})};PRE=id?{}:(pre||{});
+ MENU=o.menu||null;let h=`<div class="sh-t">${id?'Edit':'New'} ${c.one.toLowerCase()}</div>`;
+ if(c.doc)h+=`<label>${c.one} number *</label><input id="no" value="${esc(id||nid(k,c.p))}"><div class="hint">Type your own number or keep the suggestion</div>`;
  h+=c.f.map(f=>{const v=o[f[0]]??'',a=`data-f="${f[0]}"`;
-  return `<label>${f[1]}${f[3]===1?' *':''}</label>`+(f[2]=='select'?`<select ${a}>${f[3].map(s=>`<option ${s==v?'selected':''}>${s}</option>`).join('')}</select>`:f[2]=='textarea'?`<textarea ${a}>${esc(v)}</textarea>`:`<input ${a} type="${f[2]}" value="${esc(v)}">`)}).join('');
- if(c.doc)h+=`<label>Items</label><div id="its"></div><button class="ghost" style="margin-top:4px" onclick="row()">+ Add item</button><label class="chk"><input type="checkbox" id="gst" ${o.gst===0?'':'checked'}> Add 9% GST</label><div class="kv tot"><span>Total</span><b id="tt"></b></div>`;
+  return `<label>${f[1]}${f[3]===1?' *':''}</label>`+(f[2]=='select'?`<select ${a}>${f[3].map(s=>`<option value="${s}" ${s==v?'selected':''}>${s||'Select…'}</option>`).join('')}</select>`:f[2]=='textarea'?`<textarea ${a}>${esc(v)}</textarea>`:`<input ${a} type="${f[2]}" value="${esc(v)}">`)+(f[0]=='venue'?'<div class="hint">Type a 6-digit Singapore postal code to auto-fill the address</div>':'')}).join('');
+ if(c.doc)h+=`<label>Items</label><div id="its"></div><button class="ghost" style="margin-top:4px" onclick="row()">+ Add item</button><label>Menu (image or PDF)</label><input type="file" id="mf" accept="image/*,application/pdf" onchange="pickMenu(this.files[0])"><div class="hint" id="mn">${o.menu?esc(o.menu.name)+' attached':'No menu attached'}</div><button class="dng" style="margin-top:6px;padding:8px" onclick="MENU=null;$('#mn').textContent='Menu removed';$('#mf').value=''">Remove menu</button><label class="chk"><input type="checkbox" id="gst" ${o.gst===0?'':'checked'}> Add 9% GST</label><div class="kv tot"><span>Total</span><b id="tt"></b></div>`;
  h+=`<button class="pri" onclick="sv('${k}','${id||''}')">Save</button>`;
  sheet(h);
  if(c.doc){(o.items||[{d:'',q:1,p:''}]).forEach(i=>row(i));calc()}
@@ -160,14 +165,17 @@ function sv(k,id){
  const o=id?{...S[k].find(x=>x.id==id)}:{id:nid(k,c.p),created:Date.now(),status:c.st&&c.st[0],...pre};
  document.querySelectorAll('#sb [data-f]').forEach(e=>o[e.dataset.f]=e.value.trim());
  if(!o.name)return toast('Enter the customer name');
- if(c.doc){o.items=items();o.gst=$('#gst').checked?1:0}
+ if(c.doc){o.items=items();o.gst=$('#gst').checked?1:0;o.menu=MENU||undefined;
+  const nn=$('#no').value.replace(/['"`\\<>&]/g,'').trim();if(!nn)return toast('Enter the '+c.one.toLowerCase()+' number');
+  if(S[k].some(x=>x.id==nn&&x.id!=id))return toast(nn+' already exists');
+  o.id=nn;if(id&&id!=nn)S[k]=S[k].filter(x=>x.id!=id)}
  put(k,o);
  if(k!='cust'&&!S.cust.some(x=>x.name.toLowerCase()==o.name.toLowerCase()))put('cust',{id:nid('cust','C-'),name:o.name,phone:o.phone||'',created:Date.now()});
  if(!id&&_k){const s=S[_k].find(x=>x.id==_id);if(s){s.status=_st;save(_k,S[_k])}}
  closeSh();render();toast('Saved '+o.id);
 }
-const mkQuote=id=>{const o=S.inq.find(x=>x.id==id);openForm('quote','',{name:o.name,phone:o.phone,date:o.date,pax:o.pax,venue:o.venue,notes:o.notes,items:[{d:'Catering package',q:+o.pax||1,p:''}],gst:1,_k:'inq',_id:id,_st:'Quoted'})};
-const mkInv=id=>{const o=S.quote.find(x=>x.id==id);openForm('inv','',{name:o.name,phone:o.phone,date:o.date,pax:o.pax,venue:o.venue,items:o.items,gst:o.gst,_k:'quote',_id:id,_st:'Accepted'})};
+const mkQuote=id=>{const o=S.inq.find(x=>x.id==id);openForm('quote','',{name:o.name,phone:o.phone,date:o.date,pax:o.pax,venue:o.venue,slot:o.slot,items:[{d:'Catering package',q:+o.pax||1,p:''}],gst:1,_k:'inq',_id:id,_st:'Quoted'})};
+const mkInv=id=>{const o=S.quote.find(x=>x.id==id);openForm('inv','',{name:o.name,phone:o.phone,date:o.date,pax:o.pax,venue:o.venue,slot:o.slot,fn:o.fn,fc:o.fc,notes:o.notes,items:o.items,gst:o.gst,_k:'quote',_id:id,_st:'Accepted'})};
 function share(k,id){
  const o=S[k].find(x=>x.id==id),t=total(o),p=(o.phone||'').replace(/\D/g,''),n=p.length==8?'65'+p:p;
  const tx=`*Kailash Parbat Restaurants Pte Ltd*\n${CFG[k].one} ${o.id}\nCustomer: ${o.name}${o.date?'\nEvent: '+fd(o.date):''}${o.pax?' · '+o.pax+' guests':''}\n\n`+o.items.map(i=>`• ${i.d} × ${i.q} = ${money(i.q*i.p)}`).join('\n')+(o.gst?`\nGST 9%: ${money(t.g)}`:'')+`\n*Total: ${money(t.t)}*`+(o.notes?'\n\n'+o.notes:'');
@@ -175,11 +183,53 @@ function share(k,id){
 }
 function prt(k,id){
  const o=S[k].find(x=>x.id==id),t=total(o),w=window.open('','_blank');if(!w)return toast('Allow pop-ups to print');
- w.document.write(`<title>${o.id}</title><body style="font:14px system-ui,sans-serif;max-width:640px;margin:24px auto;padding:0 14px;color:#242321"><img src="${LOGO}" height="44"><h2 style="color:#4A7C3F;margin-top:12px">${CFG[k].one} ${o.id}</h2><p>Customer: <b>${esc(o.name)}</b><br>${esc(o.phone||'')}<br>${o.date?'Event: '+fd(o.date):''}${o.pax?' · '+o.pax+' guests':''}${o.venue?'<br>Venue: '+esc(o.venue):''}</p><table width="100%" cellpadding="6" style="border-collapse:collapse"><tr style="background:#4A7C3F;color:#fff"><th align="left">Item<th>Qty<th align="right">Price<th align="right">Amount</tr>${o.items.map(i=>`<tr style="border-bottom:1px solid #ddd"><td>${esc(i.d)}<td align="center">${i.q}<td align="right">${money(i.p)}<td align="right">${money(i.q*i.p)}</tr>`).join('')}</table><p align="right">${o.gst?'GST 9%: '+money(t.g)+'<br>':''}<b style="font-size:18px">Total: ${money(t.t)}</b></p><p>${esc(o.notes||'')}</p><p style="color:#6B7466;font-size:12px">Kailash Parbat Restaurants Pte Ltd</p>`);
- w.document.close();setTimeout(()=>w.print(),400);
+ const q=k=='quote',tm=(o.notes||'').split('\n').filter(x=>x.trim()),m=o.menu,
+ dt=new Date(o.created||Date.now()).toLocaleDateString('en-SG',{day:'numeric',month:'short',year:'numeric'});
+ w.document.write(`<title>${esc(o.id)}</title><style>body{font:13px system-ui,sans-serif;max-width:720px;margin:20px auto;padding:0 16px;color:#242321}table{border-collapse:collapse;width:100%}th{background:#4A7C3F;color:#fff;padding:7px;text-align:left}td{padding:7px;border-bottom:1px solid #ddd}.r{text-align:right}h1{margin:0;color:#4A7C3F;font-size:26px;letter-spacing:1px}.g{color:#6B7466;font-size:12px}.bx{border:1px solid #DDE5D6;border-radius:8px;padding:10px;flex:1}@media print{th{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>`
+ +`<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #7DBD53;padding-bottom:12px"><div><img src="${LOGO}" height="46"><div class="g" style="margin-top:6px"><b>Kailash Parbat Restaurants Pte Ltd</b>${CO.addr?'<br>'+esc(CO.addr).replace(/\n/g,'<br>'):''}${CO.contact?'<br>'+esc(CO.contact):''}${CO.uen?'<br>'+esc(CO.uen):''}</div></div><div class="r"><h1>${q?'QUOTATION':'INVOICE'}</h1><b>No: ${esc(o.id)}</b><br><span class="g">Date: ${dt}</span></div></div>`
+ +`<div style="display:flex;gap:10px;margin:14px 0"><div class="bx"><div class="g">From</div><b>${esc(o.fn||CO.fn||'Rajesh Paswan')}</b><br>${esc(o.fc||CO.fc||'+65 8376 3519')}</div><div class="bx"><div class="g">${q?'Quoted to':'Bill to'}</div><b>${esc(o.name)}</b>${o.phone?'<br>'+esc(o.phone):''}</div><div class="bx"><div class="g">Event</div>${o.date?fd(o.date):'-'}${o.slot?' · '+o.slot:''}${o.pax?'<br>'+o.pax+' guests':''}${o.venue?'<br>'+esc(o.venue):''}</div></div>`
+ +`<table><tr><th>#<th>Description<th class="r">Qty<th class="r">Price<th class="r">Amount</tr>${o.items.map((i,n)=>`<tr><td>${n+1}<td>${esc(i.d)}<td class="r">${i.q}<td class="r">${money(i.p)}<td class="r">${money(i.q*i.p)}</tr>`).join('')}</table>`
+ +`<p class="r">Subtotal: ${money(t.sub)}<br>${o.gst?'GST 9%: '+money(t.g)+'<br>':''}<b style="font-size:18px;color:#4A7C3F">Total: ${money(t.t)}</b></p>`
+  +(!q&&CO.bank?`<div class="bx" style="margin:10px 0"><b>Payment details</b><br>${esc(CO.bank).replace(/\n/g,'<br>')}</div>`:'')
+ +(tm.length?`<p><b>General terms and conditions</b></p><ol class="g">${tm.map(x=>'<li>'+esc(x.replace(/^\s*\d+[.)]\s*/,''))+'</li>').join('')}</ol>`:'')
+ +`<div style="display:flex;justify-content:space-between;margin-top:46px" class="g"><div style="border-top:1px solid #999;width:200px;padding-top:4px">Authorised signature</div></div>`
+ +(m&&m.type.startsWith('image')?`<div style="page-break-before:always"><h3 style="color:#4A7C3F">Menu</h3><img src="${m.data}" style="max-width:100%"></div>`:m?`<p class="g">Menu attached as PDF: ${esc(m.name)} (send it along with this document)</p>`:''));
+ w.document.close();setTimeout(()=>w.print(),800);
 }
-function bak(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='kailash-parbat-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click()}
-function rst(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);Object.keys(S).forEach(k=>{if(Array.isArray(d[k])){S[k]=d[k];save(k,d[k])}});render();toast('Backup restored')}catch{toast('Not a valid backup file')}};r.readAsText(f)}
+function pickMenu(f){
+ if(!f)return;const set=(d)=>{MENU={name:f.name,type:f.type,data:d};$('#mn').textContent=f.name+' attached'};
+ if(f.type=='application/pdf'){if(f.size>1.5e6){$('#mf').value='';return toast('PDF too large (max 1.5 MB)')}const r=new FileReader();r.onload=()=>set(r.result);r.readAsDataURL(f);return}
+ if(!f.type.startsWith('image/')){$('#mf').value='';return toast('Choose an image or PDF')}
+ const im=new Image();im.onload=()=>{const sc=Math.min(1,1400/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*sc;c.height=im.height*sc;c.getContext('2d').drawImage(im,0,0,c.width,c.height);set(c.toDataURL('image/jpeg',.75))};im.src=URL.createObjectURL(f);
+}
+function openMenu(k,id){const m=S[k].find(x=>x.id==id).menu;fetch(m.data).then(r=>r.blob()).then(b=>window.open(URL.createObjectURL(b),'_blank'))}
+const HD=['Type','No','Status','Name','Phone/Email','Company','Event date','Guests','Event type','Venue','Items','Subtotal','GST','Total','Notes'];
+function rows(){const R=[];[['inq','Inquiry'],['quote','Quotation'],['inv','Invoice'],['cust','Customer']].forEach(([k,l])=>S[k].forEach(o=>{const t=CFG[k].doc?total(o):null;R.push([l,o.id,o.status||'',o.name,o.phone||o.email||'',o.company||'',o.date||'',o.pax||'',o.type||'',o.venue||'',(o.items||[]).map(i=>i.d+' x'+i.q+' @'+i.p).join('; '),t?t.sub.toFixed(2):'',t?t.g.toFixed(2):'',t?t.t.toFixed(2):'',o.notes||''])}));return R}
+function dl(n,mime,txt){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:mime}));a.download=n;a.click()}
+function exp(f){
+ const n='kailash-parbat-'+new Date().toISOString().slice(0,10);
+ if(f=='json')return dl(n+'.json','application/json',JSON.stringify({...S,co:CO}));
+ const R=rows(),tb=`<table border="1" cellpadding="4" style="border-collapse:collapse;font:12px sans-serif"><tr>${HD.map(h=>`<th style="background:#4A7C3F;color:#fff">${h}</th>`).join('')}</tr>${R.map(r=>'<tr>'+r.map(c=>`<td>${esc(c)}</td>`).join('')+'</tr>').join('')}</table>`;
+ if(f=='csv')return dl(n+'.csv','text/csv','\ufeff'+[HD,...R].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n'));
+ if(f=='xls')return dl(n+'.xls','application/vnd.ms-excel','<html><head><meta charset="utf-8"></head><body>'+tb+'</body></html>');
+ const w=window.open('','_blank');if(!w)return toast('Allow pop-ups to print');
+ w.document.write('<title>'+n+'</title><body style="font-family:sans-serif"><img src="'+LOGO+'" height="40"><h3 style="color:#4A7C3F">Kailash Parbat – records</h3>'+tb);w.document.close();setTimeout(()=>w.print(),500);
+}
+function expSheet(){sheet(`<div class="sh-t">Download backup / export</div><button class="pri" onclick="exp('json')">JSON – full backup (restorable)</button><button class="ghost" onclick="exp('xls')">Excel (.xls)</button><button class="ghost" onclick="exp('csv')">CSV</button><button class="ghost" onclick="exp('pdf')">PDF report (print / save as PDF)</button><p class="note">Excel, CSV and PDF are for reading and sharing. Only JSON can be restored into the app.</p>`)}
+function coSheet(){sheet(`<div class="sh-t">Company details &amp; terms</div><div class="note">Printed on quotations and invoices.</div>`+[['fn','From – name (default)','text'],['fc','From – contact (default)','text'],['addr','Address','textarea'],['contact','Phone / email','text'],['uen','UEN / GST reg. no.','text'],['bank','Bank / PayNow details (invoices)','textarea'],['terms','Default general terms and conditions (one per line)','textarea']].map(f=>`<label>${f[1]}</label>`+(f[2]=='textarea'?`<textarea id="co_${f[0]}">${esc(CO[f[0]]||'')}</textarea>`:`<input id="co_${f[0]}" value="${esc(CO[f[0]]||'')}">`)).join('')+`<button class="pri" onclick="saveCo()">Save</button>`)}
+function saveCo(){['fn','fc','addr','contact','uen','bank','terms'].forEach(f=>CO[f]=$('#co_'+f).value.trim());try{localStorage.setItem(K+'co',JSON.stringify(CO))}catch{}closeSh();toast('Saved')}
+async function pc(e){
+ const m=e.value.trim().match(/^(\d{6})(?:\s+(.*))?$/);if(!m)return;const v=e.value;
+ try{const r=await fetch('https://www.onemap.gov.sg/api/common/elastic/search?searchVal='+m[1]+'&returnGeom=N&getAddrDetails=Y&pageNum=1'),j=await r.json(),a=j.results&&j.results[0];
+  if(!a)return toast('Postal code '+m[1]+' not found');
+  if(e.value!==v)return;
+  const nice=x=>String(x||'').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()),ok=x=>x&&x!='NIL';
+  e.value=[ok(a.BUILDING)?nice(a.BUILDING):'',(ok(a.BLK_NO)?a.BLK_NO+' ':'')+nice(a.ROAD_NAME),m[2]||''].filter(Boolean).join(', ')+', Singapore '+m[1];
+ }catch{toast('No connection – type the address manually')}
+}
+$('#sb').addEventListener('input',e=>{if(e.target.dataset.f=='venue'&&/^\d{6}$/.test(e.target.value.trim()))pc(e.target)});
+$('#sb').addEventListener('change',e=>{if(e.target.dataset.f=='venue')pc(e.target)});
+function rst(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);Object.keys(S).forEach(k=>{if(Array.isArray(d[k])){S[k]=d[k];save(k,d[k])}});if(d.co&&typeof d.co=='object'){Object.keys(CO).forEach(x=>delete CO[x]);Object.assign(CO,d.co);try{localStorage.setItem(K+'co',JSON.stringify(CO))}catch{}}render();toast('Backup restored')}catch{toast('Not a valid backup file')}};r.readAsText(f)}
 addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e;if(tab=='home')render()});
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js');
 render();

@@ -1,6 +1,6 @@
 // Kailash Parbat - Service Worker
 // Bump CACHE_VERSION on every deploy so installed phones get the new files.
-const CACHE_VERSION = 'kailash-parbat-v1';
+const CACHE_VERSION = 'kailash-parbat-v4';
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png',
   './icon-512.png', './icon-512-maskable.png', './apple-touch-icon.png', './favicon.png'];
 
