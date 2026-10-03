@@ -8,6 +8,10 @@ Five tabs: **Home** (dashboard), **Inquiries**, **Quotes**, **Invoices**, **Cust
 - Tap **+** to add a record. Tap any card to view, edit, change status or delete.
 - Inquiry -> **Create quote** -> **Create invoice** (details carry across, statuses update).
 - Quotes and invoices: items, optional 9% GST, **WhatsApp** share, **Print / PDF**.
+- Quotes/invoices: type your own number; attach a menu (image or PDF) - images print on the last page.
+- Venue: type a 6-digit Singapore postal code and the address fills in (needs internet).
+- Home -> **Company details & terms**: default From name/contact (Rajesh Paswan, +65 8376 3519), address, UEN, bank/PayNow and default general T&Cs printed on documents.
+- Backup/export as JSON (restorable), Excel, CSV or PDF.
 - Customers are added automatically from inquiries, quotes and invoices.
 - Home has **Download backup** / **Restore from backup**.
 - Works fully offline. No external libraries or logins needed.
@@ -37,7 +41,7 @@ but installing needs the hosted HTTPS link.
 - **iPhone (Safari):** open the link -> Share -> **Add to Home Screen**.
 
 ## Step 3 - Updating
-Edit the files, change `CACHE_VERSION` in `sw.js` (`kailash-parbat-v2`, v3...), re-upload,
+Edit the files, change `CACHE_VERSION` in `sw.js` (`kailash-parbat-v5`, v3...), re-upload,
 then close and reopen the app once on each phone.
 
 ## Limits to know

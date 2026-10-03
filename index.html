@@ -181,6 +181,14 @@ function share(k,id){
  const tx=`*Kailash Parbat Restaurants Pte Ltd*\n${CFG[k].one} ${o.id}\nCustomer: ${o.name}${o.date?'\nEvent: '+fd(o.date):''}${o.pax?' · '+o.pax+' guests':''}\n\n`+o.items.map(i=>`• ${i.d} × ${i.q} = ${money(i.q*i.p)}`).join('\n')+(o.gst?`\nGST 9%: ${money(t.g)}`:'')+`\n*Total: ${money(t.t)}*`+(o.notes?'\n\n'+o.notes:'');
  window.open('https://wa.me/'+n+'?text='+encodeURIComponent(tx),'_blank');
 }
+const A1=['Zero','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'],A10=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+function nw(n){
+ if(n<20)return A1[n];
+ if(n<100)return A10[Math.floor(n/10)]+(n%10?'-'+A1[n%10]:'');
+ if(n<1000)return A1[Math.floor(n/100)]+' Hundred'+(n%100?' and '+nw(n%100):'');
+ for(const[v,m]of[[1e9,'Billion'],[1e6,'Million'],[1e3,'Thousand']])if(n>=v){const r=n%v;return nw(Math.floor(n/v))+' '+m+(r?(r<100?' and ':' ')+nw(r):'')}
+}
+function words(amt){const c=Math.round((+amt||0)*100),d=Math.floor(c/100),ct=c%100;return 'Singapore Dollars '+nw(d)+(ct?' and '+nw(ct)+' Cents':'')+' Only'}
 function prt(k,id){
  const o=S[k].find(x=>x.id==id),t=total(o),w=window.open('','_blank');if(!w)return toast('Allow pop-ups to print');
  const q=k=='quote',tm=(o.notes||'').split('\n').filter(x=>x.trim()),m=o.menu,
@@ -189,10 +197,10 @@ function prt(k,id){
  +`<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #7DBD53;padding-bottom:12px"><div><img src="${LOGO}" height="46"><div class="g" style="margin-top:6px"><b>Kailash Parbat Restaurants Pte Ltd</b>${CO.addr?'<br>'+esc(CO.addr).replace(/\n/g,'<br>'):''}${CO.contact?'<br>'+esc(CO.contact):''}${CO.uen?'<br>'+esc(CO.uen):''}</div></div><div class="r"><h1>${q?'QUOTATION':'INVOICE'}</h1><b>No: ${esc(o.id)}</b><br><span class="g">Date: ${dt}</span></div></div>`
  +`<div style="display:flex;gap:10px;margin:14px 0"><div class="bx"><div class="g">From</div><b>${esc(o.fn||CO.fn||'Rajesh Paswan')}</b><br>${esc(o.fc||CO.fc||'+65 8376 3519')}</div><div class="bx"><div class="g">${q?'Quoted to':'Bill to'}</div><b>${esc(o.name)}</b>${o.phone?'<br>'+esc(o.phone):''}</div><div class="bx"><div class="g">Event</div>${o.date?fd(o.date):'-'}${o.slot?' · '+o.slot:''}${o.pax?'<br>'+o.pax+' guests':''}${o.venue?'<br>'+esc(o.venue):''}</div></div>`
  +`<table><tr><th>#<th>Description<th class="r">Qty<th class="r">Price<th class="r">Amount</tr>${o.items.map((i,n)=>`<tr><td>${n+1}<td>${esc(i.d)}<td class="r">${i.q}<td class="r">${money(i.p)}<td class="r">${money(i.q*i.p)}</tr>`).join('')}</table>`
- +`<p class="r">Subtotal: ${money(t.sub)}<br>${o.gst?'GST 9%: '+money(t.g)+'<br>':''}<b style="font-size:18px;color:#4A7C3F">Total: ${money(t.t)}</b></p>`
-  +(!q&&CO.bank?`<div class="bx" style="margin:10px 0"><b>Payment details</b><br>${esc(CO.bank).replace(/\n/g,'<br>')}</div>`:'')
+ +`<p class="r">Subtotal: ${money(t.sub)}<br>${o.gst?'GST 9%: '+money(t.g)+'<br>':''}<b style="font-size:18px;color:#4A7C3F">Total: ${money(t.t)}</b></p><p><b>Amount in words:</b> ${words(t.t)}</p>`
+  +(CO.bank?`<div class="bx" style="margin:10px 0"><b>Payment details</b><br>${esc(CO.bank).replace(/\n/g,'<br>')}</div>`:'')
  +(tm.length?`<p><b>General terms and conditions</b></p><ol class="g">${tm.map(x=>'<li>'+esc(x.replace(/^\s*\d+[.)]\s*/,''))+'</li>').join('')}</ol>`:'')
- +`<div style="display:flex;justify-content:space-between;margin-top:46px" class="g"><div style="border-top:1px solid #999;width:200px;padding-top:4px">Authorised signature</div></div>`
+ +`<div style="display:flex;justify-content:flex-end;margin-top:46px" class="g"><div style="border-top:1px solid #999;width:200px;padding-top:4px">Authorised signature</div></div>`
  +(m&&m.type.startsWith('image')?`<div style="page-break-before:always"><h3 style="color:#4A7C3F">Menu</h3><img src="${m.data}" style="max-width:100%"></div>`:m?`<p class="g">Menu attached as PDF: ${esc(m.name)} (send it along with this document)</p>`:''));
  w.document.close();setTimeout(()=>w.print(),800);
 }
